@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VAT Error Predictor</title>
+</head>
+<body>
+  <h1>VAT Error Prediction</h1>
+
+  <form id="predictForm">
+    <label>Amount: <input type="number" name="Amount" required /></label><br />
+    <label>VAT Rate: <input type="number" name="VAT_Rate" required /></label><br />
+    <label>Expected VAT: <input type="number" name="Expected_VAT" required /></label><br />
+    <label>VAT Diff: <input type="number" name="VAT_Diff" required /></label><br />
+
+    <label>Country:
+      <select name="Country">
+        <option value="Germany">Germany</option>
+        <option value="India">India</option>
+        <option value="Norway">Norway</option>
+        <option value="UK">UK</option>
+      </select>
+    </label><br />
+
+    <label>Item Category:
+      <select name="Item_Category">
+        <option value="Books">Books</option>
+        <option value="Clothing">Clothing</option>
+        <option value="Electronics">Electronics</option>
+        <option value="Food">Food</option>
+      </select>
+    </label><br /><br />
+
+    <button type="submit">Predict</button>
+  </form>
+
+  <h3 id="result"></h3>
+
+  <script>
+    document.getElementById("predictForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const form = e.target;
+      const formData = new FormData(form);
+
+      // Log the form data to ensure it's being captured correctly
+      console.log("Form data:", Object.fromEntries(formData));
+
+      // One-hot encode Country and Item_Category
+      const data = {
+        Amount: parseFloat(formData.get("Amount")),
+        VAT_Rate: parseFloat(formData.get("VAT_Rate")),
+        Expected_VAT: parseFloat(formData.get("Expected_VAT")),
+        VAT_Diff: parseFloat(formData.get("VAT_Diff")),
+
+        Country_Germany: formData.get("Country") === "Germany" ? 1 : 0,
+        Country_India: formData.get("Country") === "India" ? 1 : 0,
+        Country_Norway: formData.get("Country") === "Norway" ? 1 : 0,
+        Country_UK: formData.get("Country") === "UK" ? 1 : 0,
+
+        Item_Category_Books: formData.get("Item_Category") === "Books" ? 1 : 0,
+        Item_Category_Clothing: formData.get("Item_Category") === "Clothing" ? 1 : 0,
+        Item_Category_Electronics: formData.get("Item_Category") === "Electronics" ? 1 : 0,
+        Item_Category_Food: formData.get("Item_Category") === "Food" ? 1 : 0,
+      };
+
+      try {
+        // Send POST request to the Flask API
+        const response = await fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify([data]),
+        });
+
+        // Check the response status and data
+        const result = await response.json();
+
+        if (result.prediction) {
+          document.getElementById("result").innerText = `Prediction: ${result.prediction[0]}`;
+        } else if (result.error) {
+          document.getElementById("result").innerText = `Error: ${result.error}`;
+        } else {
+          document.getElementById("result").innerText = "Unexpected response format.";
+        }
+      } catch (error) {
+        document.getElementById("result").innerText = "Error calling API: " + error.message;
+        console.error("Error calling API:", error);  // Log the error to the console
+      }
+    });
+  </script>
+</body>
+</html>
